@@ -15,7 +15,7 @@ casper.start(url, function() { //gets past and verifies we are past the disclaim
 casper.then(function() { //verifies that we are past the disclaimer page just a tester function
     console.log('clicked ok, new location is ' + this.getCurrentUrl());
 });
-
+//test
 casper.then(function() { //scrapes the info
   /*eventually this should loop for x amount of times to scrape entire
    table http://stackoverflow.com/questions/18835159/how-to-for-loop-in-casperjs */
