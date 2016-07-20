@@ -24,7 +24,7 @@ casper.then(function() { //verifies that we are past the disclaimer page just a 
 
 function getRows(selectorText){
   var rows = document.querySelectorAll(selectorText);
-
+  //
 }
 
 // casper.then(function() { //scrapes the info
