@@ -32,10 +32,11 @@ var processPage = function(){
   console.log('back in process page');
   for(i=0;i<pageData.length;i++){
     console.log("Name : " + pageData[i].name); // should print facility name
-    console.log("Type : " + pageData[i].type); // should print facility name
-    console.log("Community : " + pageData[i].community); // should print facility name
-    console.log("Address : " + pageData[i].address); // should print facility name
-    console.log("Phone : " + pageData[i].phone); // should print facility name
+    console.log("Type : " + pageData[i].type);
+    console.log("Community : " + pageData[i].community);
+    console.log("Address : " + pageData[i].address)
+    console.log("Phone : " + pageData[i].phone);
+    console.log("Link : " + pageData[i].link);
     console.log("|==============================================================================|");
   }
 
@@ -46,7 +47,7 @@ var processPage = function(){
     stopScript();
   }
 
-  this.thenClick('.next-page-link').then(function(){
+  this.thenClick('.next-page-link').then(function(){ // recursion starts here for pagination
     this.waitForSelector('.hovereffect',processPage,stopScript);
   });
 
@@ -62,7 +63,8 @@ function getPageData(selector){ // do all page processing here
       type: tr.children[1].innerText.trim(),
       community: tr.children[2].innerText.trim(),
       address: tr.children[3].innerText.trim(),
-      phone: tr.children[4].innerText.trim()
+      phone: tr.children[4].innerText.trim(),
+      link: tr.getAttribute("onclick").match (/'(.*?)'/)[1]
     };
   });
 }
