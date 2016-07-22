@@ -1,6 +1,10 @@
+var listings = [];
+var count = 0;
 var casper = require('casper').create();
 var mouse = require("mouse").create(casper);
-var url='https://inspections.vcha.ca'; //start page
+var fs = require('fs');
+var url='https://inspections.vcha.ca'; //original start page
+// var url='https://inspections.vcha.ca/FoodPremises/Table?SortMode=FacilityName&PageSize=20000'; //start page that will go to the large query after entering
 
 casper.start(url, function() { //gets past and verifies we are past the disclaimer page
     if (this.exists('input.button')) {
@@ -11,39 +15,84 @@ casper.start(url, function() { //gets past and verifies we are past the disclaim
     }
     this.mouse.click('input.button');
 });
-
-casper.then(function() { //verifies that we are past the disclaimer page just a tester function
-    console.log('clicked ok, new location is ' + this.getCurrentUrl());
-});
-
-casper.then(function() { //scrapes the info
-  /*eventually this should loop for x amount of times to scrape entire
-   table http://stackoverflow.com/questions/18835159/how-to-for-loop-in-casperjs */
-
-    //var limit = 20000, count = 1;
-    var name = casper.getElementInfo('td.facilityName').text;
-    var type = casper.getElementInfo('td.facilityType').text;
-    var community = casper.getElementInfo('td.community').text;
-    var addr = casper.getElementInfo('td.siteAddress').text;
-    var phone = casper.getElementInfo('td.phoneNumber').text;
-    this.echo (name + type + community + addr + phone); //proof
-
-    var drill = casper.getElementAttribute('tr.hovereffect', 'onclick'); //select link attribute with href
-    var drillopen = drill.match (/'(.*?)'/)[1]; //uses regexp function to trim 'drill'
-    casper.thenOpen (url+drillopen, function (){
-      /*gets the href for the first link the selector is focused on and opens it,
-      unsure how to increment the selector down*/
-      //console.log('clicked ok, new location is ' + this.getCurrentUrl()); //proof
-        var results = casper.getElementAttribute('tr.hovereffect', 'onclick'); //select link attribute with href
-        var resultsopen = results.match (/'(.*?)'/)[1]; //uses regexp function to trim 'drill'
-        casper.thenOpen (url+resultsopen, function (){
-         /*opens inspection results, thinking to use coordinates so that the most
-         recent inspection is always opened, however not elegant*/
-        var description = casper.getElementInfo('th.colspanheader').text; // this table row has no class or id, so not sure how to select
-        var compliance = casper.getElementInfo('td.inspection-answer').text;
-        this.echo (description + compliance); //proof
-        });
-    });
-
+casper.then(function(){
+  console.log('clicked ok, new location is ' + this.getCurrentUrl());
+  // this waits for the selector (hovereffect class) to show on page before anything else happens,
+  // then does the first function and does the second if it timesout
+  casper.waitForSelector('.hovereffect',processPage,stopScript); // this can then be made recursive
 });
 casper.run();
+
+var stopScript = function(){
+  casper.echo("SCRIPT ENDING").exit();
+};
+
+var processPage = function(){
+  console.log('in process page');
+  var pageData = this.evaluate(getPageData,'table tbody tr.hovereffect'); // getPageData is the function that will do the data scraping
+  console.log('back in process page');
+  for(i=0;i<pageData.length;i++){
+    console.log("Name : " + pageData[i].name); // should print facility name
+    console.log("Type : " + pageData[i].type);
+    console.log("Community : " + pageData[i].community);
+    console.log("Address : " + pageData[i].address)
+    console.log("Phone : " + pageData[i].phone);
+    console.log("Link : " + pageData[i].link);
+    console.log("|==============================================================================|");
+  }
+
+  //******************
+  // so the current output is an array with the information above that can be parsed into JSON or saved to some other format
+
+  if(this.exists('.next-page-link') == true){ // this is to handle pagination but later should be set to false to allow for pagination
+    stopScript();
+  }
+
+  this.thenClick('.next-page-link').then(function(){ // recursion starts here for pagination
+    this.waitForSelector('.hovereffect',processPage,stopScript);
+  });
+
+  //******************
+  // write to csv https://www.garysieling.com/blog/scraping-tabular-websites-into-a-csv-file-using-phantomjs
+  // csv must be created in the folder tree first
+  if(pageData.length != undefined) {
+    console.log("csv loading...");
+  for(i = 0; i < pageData.length; i++) {
+    if(pageData[i] != null) {
+      facname = pageData[i].name;
+      factype = pageData[i].type;
+      faccomm = pageData[i].community;
+      facaddr = pageData[i].address;
+      facphone = pageData[i].phone;
+      faclink = pageData[i].link;
+      stream = fs.open('data.csv','aw'); //appends and writes
+      stream.write(facname+",");
+      stream.write(factype+",");
+      stream.write(faccomm+",");
+      stream.write(facaddr+",");
+      stream.write(facphone+",");
+      stream.writeLine(faclink);
+      stream.flush();
+      stream.close();
+
+      }
+    }
+  }
+
+};
+
+// Helper links: http://stackoverflow.com/questions/34247237/how-to-parse-map-an-html-data-table-to-a-json-object-using-casperjs
+function getPageData(selector){ // do all page processing here
+  var query = document.querySelectorAll(selector);
+  // Return an Array that has these elements
+  return Array.prototype.map.call(query,function(tr){ // this take and then breakdown a DOM Element in this case all tr.hovereffect
+    return {
+      name: tr.children[0].innerText.trim(), // first child (note there could be a better selector)
+      type: tr.children[1].innerText.trim(),
+      community: tr.children[2].innerText.trim(),
+      address: tr.children[3].innerText.trim(),
+      phone: tr.children[4].innerText.trim(),
+      link: tr.getAttribute("onclick").match (/'(.*?)'/)[1]
+    };
+  });
+}
