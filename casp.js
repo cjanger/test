@@ -2,6 +2,7 @@ var listings = [];
 var count = 0;
 var casper = require('casper').create();
 var mouse = require("mouse").create(casper);
+var fs = require('fs');
 var url='https://inspections.vcha.ca'; //original start page
 // var url='https://inspections.vcha.ca/FoodPremises/Table?SortMode=FacilityName&PageSize=20000'; //start page that will go to the large query after entering
 
@@ -50,6 +51,33 @@ var processPage = function(){
   this.thenClick('.next-page-link').then(function(){ // recursion starts here for pagination
     this.waitForSelector('.hovereffect',processPage,stopScript);
   });
+
+  //******************
+  // write to csv https://www.garysieling.com/blog/scraping-tabular-websites-into-a-csv-file-using-phantomjs
+  // csv must be created in the folder tree first
+  if(pageData.length != undefined) {
+    console.log("csv loading...");
+  for(i = 0; i < pageData.length; i++) {
+    if(pageData[i] != null) {
+      facname = pageData[i].name;
+      factype = pageData[i].type;
+      faccomm = pageData[i].community;
+      facaddr = pageData[i].address;
+      facphone = pageData[i].phone;
+      faclink = pageData[i].link;
+      stream = fs.open('data.csv','aw'); //appends and writes
+      stream.write(facname+",");
+      stream.write(factype+",");
+      stream.write(faccomm+",");
+      stream.write(facaddr+",");
+      stream.write(facphone+",");
+      stream.writeLine(faclink);
+      stream.flush();
+      stream.close();
+
+      }
+    }
+  }
 
 };
 
