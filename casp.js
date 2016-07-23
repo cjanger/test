@@ -21,16 +21,6 @@ casper.then(function(){ // first gather listing page data
   // then does the first function and does the second if it timesout
   casper.waitForSelector('.hovereffect',processPage,stopScript); // this can then be made recursive
 });
-// TODO: need to figure out how to have something occur after this ^^^^^^
-// like all of these run then after have another round of processing occur
-// capser.then(function(){
-//   for(i=0;i<listings.length;i++){
-//     console.log('attempting to go: ' + url + listings[i].link);
-//     this.thenOpen(url + listings[i].link).then(function(){
-//       this.waitForSelector('.hovereffect',processListing,step1Script);
-//     });
-//   }
-// });
 casper.run();
 
 var step1Script = function(){
@@ -73,6 +63,16 @@ var processPage = function(){
   // if we are just doing a giant query this will work all the same regardless of format. could condesnse it if necessary to save on operation time
   listings.push.apply(listings,this.evaluate(getListings,'table tbody tr.hovereffect')); // getListings is the function that will do the data scraping
   console.log('back in process page');
+  for(i=0;i<listings.length;i++){
+    console.log('attempting to go: ' + url + listings[i].link);
+    this.thenOpen(url + listings[i].link).then(function(){ // Not sure if its this or the below
+      // TODO: this does not fire why?
+      console.log('new location is ' + this.getCurrentUrl());
+      var pageData = this.evaluate(processListing);
+      // would do add any data sent back to existing arrays as a push.
+      console.log('data sent back: ' + pageData);
+    });
+  }
 
   if(this.exists('.next-page-link') == true){ // this is to handle pagination but later should be set to false to allow for pagination
     stopScript();
@@ -83,9 +83,9 @@ var processPage = function(){
   });
 };
 
-var processListing = function(){
-  console.log('in listing page');
-  console.log('new location is ' + this.getCurrentUrl());
+function processListings(){ // test function to see if drilldown works and sends data back
+  var sendbackData = 12345;
+  return sendbackData;
 }
 
 // Helper links: http://stackoverflow.com/questions/34247237/how-to-parse-map-an-html-data-table-to-a-json-object-using-casperjs
@@ -104,7 +104,6 @@ function getListings(selector){ // do all inita listings page processing here
   });
 }
 
-// TODO: Not working ATM
 function getListingData(){ // individual listing page processing
   var ListingData = [];
   // need to do individual selectors because the data is all over the place. could work on a more generic collection method
@@ -127,7 +126,7 @@ function printData(){
     console.log("Address : " + listings[i].address)
     console.log("Phone : " + listings[i].phone);
     console.log("Link : " + listings[i].link);
-    // console.log("Count : " + listings[i].nonCritInfractionCount);
+    console.log("Count : " + listings[i].nonCritInfractionCount);
     console.log("|==============================================================================|");
   }
 }
